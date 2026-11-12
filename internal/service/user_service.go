@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -45,13 +44,7 @@ func (s *UserService) Get(ctx context.Context, id int64) (dto.UserResponse, erro
 }
 
 func (s *UserService) List(ctx context.Context, limit, offset int) ([]dto.UserResponse, error) {
-	// Keep pagination sane: default 20, max 100.
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-	if offset < 0 {
-		offset = 0
-	}
+	limit, offset = normalizePage(limit, offset)
 
 	users, err := s.repo.List(ctx, limit, offset)
 	if err != nil {
@@ -95,12 +88,4 @@ func validateUser(u models.User) error {
 		return fmt.Errorf("%w: age must be greater than 0", ErrValidation)
 	}
 	return nil
-}
-
-// mapRepoErr converts repository errors into service errors.
-func mapRepoErr(err error) error {
-	if errors.Is(err, repository.ErrNotFound) {
-		return ErrNotFound
-	}
-	return err
 }
