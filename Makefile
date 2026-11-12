@@ -2,7 +2,7 @@
 include .env
 export
 
-.PHONY: run db-migrate db-seed
+.PHONY: run db-migrate db-seed simulate
 
 # Start the API server
 run:
@@ -16,3 +16,8 @@ db-migrate:
 # Requires the DB to be up: docker compose up -d
 db-seed:
 	docker compose exec -T database psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < seeds/001_players.sql
+
+# Run an end-to-end draft simulation against the running API (make run first).
+# Options: SIZE=3 TIMEOUT=5 KEEP=1 BASE_URL=http://localhost:8080
+simulate:
+	@BASE_URL=http://localhost:$(PORT) ./scripts/simulate.sh
