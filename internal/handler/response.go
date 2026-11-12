@@ -41,7 +41,9 @@ func handleServiceError(w http.ResponseWriter, err error) {
 	case errors.Is(err, service.ErrValidation):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrNotFound):
-		writeError(w, http.StatusNotFound, "resource not found")
+		writeError(w, http.StatusNotFound, err.Error()) // e.g. "league not found"
+	case errors.Is(err, service.ErrConflict):
+		writeError(w, http.StatusConflict, err.Error())
 	default:
 		log.Printf("internal error: %v", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")

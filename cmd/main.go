@@ -43,9 +43,14 @@ func main() {
 	leagueSvc := service.NewLeagueService(leagueRepo)
 	leagueHandler := handler.NewLeagueHandler(leagueSvc)
 
+	entryRepo := repository.NewEntryRepository(pool)
+	entrySvc := service.NewEntryService(entryRepo, userRepo, leagueRepo)
+	entryHandler := handler.NewEntryHandler(entrySvc)
+
 	mux := http.NewServeMux()
 	userHandler.RegisterRoutes(mux)
 	leagueHandler.RegisterRoutes(mux)
+	entryHandler.RegisterRoutes(mux)
 
 	log.Printf("listening on :%s", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
