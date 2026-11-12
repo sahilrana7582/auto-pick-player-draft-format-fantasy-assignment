@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
 	"auto-pick-player-draft-format-fantasy-assignment/internal/service"
 )
@@ -21,6 +22,16 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 // writeError sends {"error": "..."}.
 func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+// parseID reads {id} from the path; writes a 400 and returns false if invalid.
+func parseID(w http.ResponseWriter, r *http.Request) (int64, bool) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id <= 0 {
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return 0, false
+	}
+	return id, true
 }
 
 // handleServiceError maps service errors to HTTP status codes.

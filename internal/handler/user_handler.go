@@ -101,13 +101,3 @@ func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
-
-// parseID reads {id} from the path; writes a 400 and returns false if invalid.
-func parseID(w http.ResponseWriter, r *http.Request) (int64, bool) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil || id <= 0 {
-		writeError(w, http.StatusBadRequest, "invalid id")
-		return 0, false
-	}
-	return id, true
-}
