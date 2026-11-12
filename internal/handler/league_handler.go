@@ -25,6 +25,21 @@ func (h *LeagueHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /leagues/{id}", h.Get)
 	mux.HandleFunc("PUT /leagues/{id}", h.Update)
 	mux.HandleFunc("DELETE /leagues/{id}", h.Delete)
+	mux.HandleFunc("POST /leagues/{id}/start", h.Start)
+}
+
+// POST /leagues/{id}/start  -> status: created -> started (closes joining)
+func (h *LeagueHandler) Start(w http.ResponseWriter, r *http.Request) {
+	id, ok := parseID(w, r)
+	if !ok {
+		return
+	}
+	resp, err := h.svc.Start(r.Context(), id)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // POST /leagues

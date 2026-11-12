@@ -2,11 +2,15 @@
 include .env
 export
 
-.PHONY: run db-seed
+.PHONY: run db-migrate db-seed
 
 # Start the API server
 run:
 	go run cmd/main.go
+
+# Apply all pending migrations (uses the `migrate` service in docker-compose).
+db-migrate:
+	docker compose run --rm migrate
 
 # Insert seed data (cricket players) into the Postgres container.
 # Requires the DB to be up: docker compose up -d

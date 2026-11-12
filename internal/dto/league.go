@@ -15,6 +15,7 @@ type CreateLeagueRequest struct {
 }
 
 // UpdateLeagueRequest is the JSON body for PUT /leagues/{id} (replaces all fields).
+// Status is NOT editable here; use POST /leagues/{id}/start.
 type UpdateLeagueRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -29,6 +30,7 @@ type LeagueResponse struct {
 	Description string    `json:"description"`
 	Type        string    `json:"type"`
 	SeriesName  string    `json:"series_name"`
+	Status      string    `json:"status"` // created | started | completed
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -45,6 +47,7 @@ func ToLeagueResponse(l models.League) LeagueResponse {
 		Description: desc,
 		Type:        string(l.Type),
 		SeriesName:  l.SeriesName,
+		Status:      string(l.Status),
 		CreatedAt:   l.CreatedAt,
 	}
 }

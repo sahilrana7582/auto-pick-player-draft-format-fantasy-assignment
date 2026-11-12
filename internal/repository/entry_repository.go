@@ -42,14 +42,21 @@ func (r *EntryRepository) Create(ctx context.Context, e *models.Entry) error {
 	}
 	defer tx.Rollback(ctx) // no-op after a successful Commit
 
-	// 1. Lock the league row (also confirms the league exists).
-	var leagueID int64
-	err = tx.QueryRow(ctx, `SELECT id FROM leagues WHERE id = $1 FOR UPDATE`, e.LeagueID).Scan(&leagueID)
+	// 1. Lock the league row (also confirms the league exists) and read its status.
+	var status models.LeagueStatus
+	err = tx.QueryRow(ctx, `SELECT status FROM leagues WHERE id = $1 FOR UPDATE`, e.LeagueID).Scan(&status)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
 	if err != nil {
 		return err
+	}
+
+	// Only 'created' leagues accept new entries.
+	// This check must happen here, under the lock: "start league" UPDATEs the
+	// same row, so a join and a start can't interleave and slip an entry in.
+	if status != models.LeagueStatusCreated {
+		return ErrLeagueNotOpen
 	}
 
 	// 2. Insert with the next pick_order for this league.
