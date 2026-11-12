@@ -1,0 +1,33 @@
+services:
+  database:
+    container_name: fantasy-db
+    image: postgres:17-alpine          # pinned: postgres:latest (18+) changed the data dir layout
+    env_file: .env                     # POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
+    ports:
+      - "5433:5432"                    # host 5433 -> container 5432 (5432 is taken by local Homebrew Postgres)
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      # $$ = use the container's env var, not compose-time interpolation
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Runs all pending migrations once the DB is healthy, then exits.
+  migrate:
+    image: migrate/migrate:v4.18.3
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    # inside the compose network the DB host is the service name "database"
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?sslmode=disable"
+      - "up"
+
+volumes:
+  pg_data:
+    driver: local
