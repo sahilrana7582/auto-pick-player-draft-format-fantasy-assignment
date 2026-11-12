@@ -152,12 +152,6 @@ func (w *AutoDraftPickWorker) fetchAvailablePlayers(ctx context.Context, leagueI
 func (w *AutoDraftPickWorker) handleSingleLeague(ctx context.Context, leagueID int64, lData *leagueData) error {
 	availablePlayers := lData.availablePlayers
 
-	// Name the columns: roster_owners also has `id` (auto) and `created_at` (default),
-	// so without a column list Postgres would try to put $1 into `id`.
-	const query = `
-		INSERT INTO roster_owners (league_id, entry_id, player_id)
-		VALUES ($1, $2, $3)`
-
 	for _, pick := range lData.picks {
 		// Nobody left to pick.
 		if len(availablePlayers) == 0 {
@@ -167,7 +161,7 @@ func (w *AutoDraftPickWorker) handleSingleLeague(ctx context.Context, leagueID i
 		// First available player.
 		player := availablePlayers[0]
 
-		if _, err := w.pool.Exec(ctx, query, pick.LeagueID, pick.EntryID, player.ID); err != nil {
+		if err := w.assignPlayer(ctx, pick, player.ID); err != nil {
 			return fmt.Errorf("entry %d pick player %d: %w", pick.EntryID, player.ID, err)
 		}
 
@@ -175,4 +169,33 @@ func (w *AutoDraftPickWorker) handleSingleLeague(ctx context.Context, leagueID i
 		availablePlayers = availablePlayers[1:]
 	}
 	return nil
+}
+
+// assignPlayer gives the player to the entry AND removes the timed-out pick,
+// in one transaction: either both happen or neither does. Without this, a crash
+// between the two steps would leave the expired pick behind and the next tick
+// would hand the same entry another player.
+func (w *AutoDraftPickWorker) assignPlayer(ctx context.Context, pick models.LeaguePick, playerID int64) error {
+	tx, err := w.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) // no-op after a successful Commit
+
+	// Name the columns: roster_owners also has `id` (auto) and `created_at` (default),
+	// so without a column list Postgres would try to put $1 into `id`.
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO roster_owners (league_id, entry_id, player_id)
+		VALUES ($1, $2, $3)`,
+		pick.LeagueID, pick.EntryID, playerID,
+	); err != nil {
+		return err
+	}
+
+	// Pick is done -> remove it.
+	if _, err := tx.Exec(ctx, `DELETE FROM league_picks WHERE id = $1`, pick.ID); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
