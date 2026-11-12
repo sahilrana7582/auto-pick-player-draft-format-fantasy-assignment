@@ -164,6 +164,8 @@ func (w *AutoDraftPickWorker) handleSingleLeague(ctx context.Context, leagueID i
 		if err := w.assignPlayer(ctx, pick, player.ID); err != nil {
 			return fmt.Errorf("entry %d pick player %d: %w", pick.EntryID, player.ID, err)
 		}
+		log.Printf("auto-pick: league %d, entry %d got player %d (%s, %s)",
+			leagueID, pick.EntryID, player.ID, player.Name, player.Position)
 
 		// That player is taken now; the next pick gets the next one.
 		availablePlayers = availablePlayers[1:]
