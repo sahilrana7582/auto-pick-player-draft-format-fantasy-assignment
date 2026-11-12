@@ -7,15 +7,20 @@ import (
 )
 
 // Errors the handler can map to HTTP status codes.
+// Wrap them with context, e.g. fmt.Errorf("league %w", ErrNotFound) -> "league not found".
 var (
-	ErrNotFound   = errors.New("not found")
-	ErrValidation = errors.New("validation error")
+	ErrNotFound   = errors.New("not found")        // 404
+	ErrValidation = errors.New("validation error") // 400
+	ErrConflict   = errors.New("conflict")         // 409
 )
 
 // mapRepoErr converts repository errors into service errors.
 func mapRepoErr(err error) error {
-	if errors.Is(err, repository.ErrNotFound) {
+	switch {
+	case errors.Is(err, repository.ErrNotFound):
 		return ErrNotFound
+	case errors.Is(err, repository.ErrConflict):
+		return ErrConflict
 	}
 	return err
 }
