@@ -8,8 +8,9 @@ import (
 
 // Upper layers check for these instead of pgx-specific errors.
 var (
-	ErrNotFound = errors.New("not found") // row doesn't exist
-	ErrConflict = errors.New("conflict")  // UNIQUE constraint violated
+	ErrNotFound      = errors.New("not found")                      // row doesn't exist
+	ErrConflict      = errors.New("conflict")                       // UNIQUE constraint violated / wrong status
+	ErrLeagueNotOpen = errors.New("league is not open for joining") // league status != 'created'
 )
 
 // isUniqueViolation reports whether err is a Postgres UNIQUE violation (SQLSTATE 23505).

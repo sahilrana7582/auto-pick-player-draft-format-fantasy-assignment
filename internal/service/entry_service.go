@@ -43,6 +43,8 @@ func (s *EntryService) Join(ctx context.Context, leagueID int64, req dto.CreateE
 		switch {
 		case errors.Is(err, repository.ErrConflict):
 			return dto.EntryResponse{}, fmt.Errorf("%w: user has already joined this league", ErrConflict)
+		case errors.Is(err, repository.ErrLeagueNotOpen):
+			return dto.EntryResponse{}, fmt.Errorf("%w: league has already started, joining is closed", ErrConflict)
 		case errors.Is(err, repository.ErrNotFound): // league deleted between check and insert
 			return dto.EntryResponse{}, fmt.Errorf("league %w", ErrNotFound)
 		}

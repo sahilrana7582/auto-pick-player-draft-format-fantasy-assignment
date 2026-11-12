@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -60,6 +61,21 @@ func (s *LeagueService) Update(ctx context.Context, id int64, req dto.UpdateLeag
 	}
 	if err := s.repo.Update(ctx, &l); err != nil {
 		return dto.LeagueResponse{}, mapRepoErr(err)
+	}
+	return dto.ToLeagueResponse(l), nil
+}
+
+// Start moves the league from 'created' to 'started'. After this, nobody can join.
+// Returns 409 if the league is already started/completed.
+func (s *LeagueService) Start(ctx context.Context, id int64) (dto.LeagueResponse, error) {
+	l, err := s.repo.UpdateStatus(ctx, id, models.LeagueStatusCreated, models.LeagueStatusStarted)
+	switch {
+	case errors.Is(err, repository.ErrNotFound):
+		return dto.LeagueResponse{}, fmt.Errorf("league %w", ErrNotFound)
+	case errors.Is(err, repository.ErrConflict):
+		return dto.LeagueResponse{}, fmt.Errorf("%w: league can only be started from 'created' status", ErrConflict)
+	case err != nil:
+		return dto.LeagueResponse{}, err
 	}
 	return dto.ToLeagueResponse(l), nil
 }
