@@ -12,6 +12,8 @@ type CreateLeagueRequest struct {
 	Description string `json:"description"` // optional
 	Type        string `json:"type"`        // "season_long" | "draft_pick"
 	SeriesName  string `json:"series_name"`
+	Size        int    `json:"size"`    // max members, >= 2
+	Timeout     int    `json:"timeout"` // seconds per pick, 1..300
 }
 
 // UpdateLeagueRequest is the JSON body for PUT /leagues/{id} (replaces all fields).
@@ -21,6 +23,8 @@ type UpdateLeagueRequest struct {
 	Description string `json:"description"`
 	Type        string `json:"type"`
 	SeriesName  string `json:"series_name"`
+	Size        int    `json:"size"`
+	Timeout     int    `json:"timeout"`
 }
 
 // LeagueResponse is what we send back to the client.
@@ -31,6 +35,8 @@ type LeagueResponse struct {
 	Type        string    `json:"type"`
 	SeriesName  string    `json:"series_name"`
 	Status      string    `json:"status"` // created | started | completed
+	Size        int       `json:"size"`
+	Timeout     int       `json:"timeout"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -48,6 +54,20 @@ func ToLeagueResponse(l models.League) LeagueResponse {
 		Type:        string(l.Type),
 		SeriesName:  l.SeriesName,
 		Status:      string(l.Status),
+		Size:        l.Size,
+		Timeout:     l.Timeout,
 		CreatedAt:   l.CreatedAt,
 	}
+}
+
+// CurrentPickResponse tells whose turn it is and until when.
+type CurrentPickResponse struct {
+	EntryID   int64     `json:"entry_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// StartLeagueResponse is returned by POST /leagues/{id}/start.
+type StartLeagueResponse struct {
+	League      LeagueResponse      `json:"league"`
+	CurrentPick CurrentPickResponse `json:"current_pick"`
 }

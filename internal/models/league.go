@@ -34,5 +34,7 @@ type League struct {
 	Type        LeagueType
 	SeriesName  string
 	Status      LeagueStatus
+	Size        int // max entries allowed; league starts only when full
+	Timeout     int // seconds per pick (1..300)
 	CreatedAt   time.Time
 }

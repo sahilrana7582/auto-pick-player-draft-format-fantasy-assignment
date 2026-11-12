@@ -42,9 +42,11 @@ func (r *EntryRepository) Create(ctx context.Context, e *models.Entry) error {
 	}
 	defer tx.Rollback(ctx) // no-op after a successful Commit
 
-	// 1. Lock the league row (also confirms the league exists) and read its status.
+	// 1. Lock the league row (also confirms the league exists) and read status + size.
 	var status models.LeagueStatus
-	err = tx.QueryRow(ctx, `SELECT status FROM leagues WHERE id = $1 FOR UPDATE`, e.LeagueID).Scan(&status)
+	var size int
+	err = tx.QueryRow(ctx, `SELECT status, size FROM leagues WHERE id = $1 FOR UPDATE`, e.LeagueID).
+		Scan(&status, &size)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -52,11 +54,21 @@ func (r *EntryRepository) Create(ctx context.Context, e *models.Entry) error {
 		return err
 	}
 
+	// These checks must happen here, under the lock: "start league" and other
+	// joins lock the same row, so nothing can slip in between check and insert.
+
 	// Only 'created' leagues accept new entries.
-	// This check must happen here, under the lock: "start league" UPDATEs the
-	// same row, so a join and a start can't interleave and slip an entry in.
 	if status != models.LeagueStatusCreated {
 		return ErrLeagueNotOpen
+	}
+
+	// League can't have more entries than its size.
+	var count int
+	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM entries WHERE league_id = $1`, e.LeagueID).Scan(&count); err != nil {
+		return err
+	}
+	if count >= size {
+		return ErrLeagueFull
 	}
 
 	// 2. Insert with the next pick_order for this league.
